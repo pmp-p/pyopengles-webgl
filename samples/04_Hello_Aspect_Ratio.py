@@ -98,8 +98,8 @@ move = [0.0, 0.0, 0.0]
 # Adjust the scaling to match the display's aspect ratio:
 rescale = [0.5, 0.5*ctx.width.value / float(ctx.height.value), 0.5]
 
-print "Controls: \nm - Rotate clockwise, n - rotate counter-clockwise, \n"
-print "Movement: a - left,  d - right,  w - up, s - down\n\nq - Quit\n\nStarts in 3 seconds..."
+print("Controls: \nm - Rotate clockwise, n - rotate counter-clockwise, \n")
+print("Movement: a - left,  d - right,  w - up, s - down\n\nq - Quit\n\nStarts in 3 seconds...")
 
 time.sleep(3)
 

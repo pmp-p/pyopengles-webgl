@@ -1,7 +1,7 @@
 
-from pyopengles import *
+from .pyopengles import *
 
-import pymouse
+from . import pymouse
 
 class demo():
 
@@ -11,7 +11,7 @@ class demo():
         log=(ctypes.c_char*N)()
         loglen=ctypes.c_int()
         opengles.glGetShaderInfoLog(shader,N,ctypes.byref(loglen),ctypes.byref(log))
-        print log.value
+        print(log.value)
 
     def showprogramlog(self,shader):
         """Prints the compile log for a shader"""
@@ -19,7 +19,7 @@ class demo():
         log=(ctypes.c_char*N)()
         loglen=ctypes.c_int()
         opengles.glGetProgramInfoLog(shader,N,ctypes.byref(loglen),ctypes.byref(log))
-        print log.value
+        print(log.value)
             
     def __init__(self):
         self.vertex_data = eglfloats((-1.0,-1.0,1.0,1.0,
@@ -279,12 +279,12 @@ class demo():
     def check(self):
         e=opengles.glGetError()
         if e:
-            print hex(e)
+            print(hex(e))
             raise ValueError
         
 def showerror():
     e=opengles.glGetError()
-    print hex(e)
+    print(hex(e))
     
 if __name__ == "__main__":
     egl = EGL()

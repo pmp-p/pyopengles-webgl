@@ -19,25 +19,25 @@ def draw(programObject,time_ms, m, r, Vbo):
   opengles.glUniform1f(location, eglfloat(time_ms))
   try:
     e._check_glerror()
-  except GLError, error:
-    print "Error setting time uniform var"
-    print error
+  except GLError as error:
+    print("Error setting time uniform var")
+    print(error)
 
   location = opengles.glGetUniformLocation(programObject, "mouse")
   opengles.glUniform2f(location, eglfloat(float(m.x) / r[0].value), eglfloat(float(m.y) / r[1].value))
   try:
     e._check_glerror()
-  except GLError, error:
-    print "Error setting mouse uniform var"
-    print error
+  except GLError as error:
+    print("Error setting mouse uniform var")
+    print(error)
 
   location = opengles.glGetUniformLocation(programObject, "resolution")
   opengles.glUniform2f(location, r[0], r[1])
   try:
     e._check_glerror()
-  except GLError, error:
-    print "Error setting resolution uniform var"
-    print error
+  except GLError as error:
+    print("Error setting resolution uniform var")
+    print(error)
 
   opengles.glBindBuffer(GL_ARRAY_BUFFER, Vbo)
 
@@ -90,7 +90,7 @@ void main() {
 
   # Check the link status
   if not (e._check_Linked_status(programObject)):
-    print "Couldn't link the shaders to the program object. Check the bindings and shader sourcefiles."
+    print("Couldn't link the shaders to the program object. Check the bindings and shader sourcefiles.")
     raise Exception
  
   opengles.glClearColor ( eglfloat(0.3), eglfloat(0.3), eglfloat(0.5), eglfloat(1.0) )

@@ -21,17 +21,6 @@ vertex_shader = """
     attribute vec4 vPosition;
     
     uniform float rotation;
-    uniform vec3 move;
-
-    mat4 translate(float x, float y, float z)
-    {
-    return mat4(
-        vec4(1.0, 0.0, 0.0, 0.0),
-        vec4(0.0, 1.0, 0.0, 0.0),
-        vec4(0.0, 0.0, 1.0, 0.0),
-        vec4(x,   y,   z,   1.0)
-        );
-    }
     
     mat4 rotate_z(float theta)
     {
@@ -45,9 +34,7 @@ vertex_shader = """
 
     void main()
     {
-        gl_Position = translate(move.x, move.y, move.z)
-                      * rotate_z(rotation) 
-                      * vPosition;
+        gl_Position = rotate_z(rotation) * vPosition;
     }
 """
 
@@ -78,13 +65,10 @@ opengles.glViewport(0,0,ctx.width, ctx.height)
 
 # Find the location of the 'uniform' rotation:
 rot_loc = opengles.glGetUniformLocation(program, "rotation")
-move_loc = opengles.glGetUniformLocation(program, "move")
 
 rotation = 0.0
-move = [0.0, 0.0, 0.0]
 
-print "Controls: \nm - Rotate clockwise, n - rotate counter-clockwise, \n"
-print "Movement: a - left,  d - right,  w - up, s - down\n\nq - Quit\n\nStarts in 3 seconds..."
+print("Controls: \nm - Rotate clockwise, \nn - rotate counter-clockwise, \nq - Quit\n\nStarts in 3 seconds...")
 
 time.sleep(3)
 
@@ -100,32 +84,15 @@ try:
         if r:
             c = sys.stdin.read(1)
             if c.lower() == "m":
-                # rotate
                 rotation -= 0.05
-            elif c.lower() == "n": 
-                # rotate
+            elif c.lower() == "n":
                 rotation += 0.05
-            elif c.lower() == "a":
-                # move left
-                move[0] = move[0] - 0.1
-            elif c.lower() == "d":
-                # move right
-                move[0] = move[0] + 0.1
-            elif c.lower() == "s":
-                # move down
-                move[1] -= 0.1
-            elif c.lower() == "w":
-                # move up
-                move[1] += 0.1
             elif c.lower() == "q":
                 # quit
                 running = False
 
         # set rotation:
         opengles.glUniform1f(rot_loc, eglfloat(rotation))
-
-        # set translation
-        opengles.glUniform3f(move_loc, eglfloat( move[0] ), eglfloat(move[1]), eglfloat(move[2]))
 
         # Load the vertex data
         opengles.glVertexAttribPointer ( 0, 3, GL_FLOAT, GL_FALSE, 0, triangle_vertices )

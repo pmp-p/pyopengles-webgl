@@ -17,7 +17,7 @@ class MouseThread ( threading.Thread ):
     def run ( self ):
         while 1:
             while 1:
-                buttons,dx,dy=map(ord,self.fd.read(3))
+                buttons,dx,dy=list(map(ord,self.fd.read(3)))
                 if buttons&8:
                     break # This bit should always be set
                 self.fd.read(1) # Try to sync up again

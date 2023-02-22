@@ -1,6 +1,6 @@
 #
 # Copyright (c) 2012 Peter de Rivaz
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted.
 #
@@ -8,14 +8,14 @@
 #
 # Version 0.1 (Draws a rectangle using vertex and fragment shaders)
 # Version 0.2 (Draws a Julia set on top of a Mandelbrot controlled by the mouse.  Mandelbrot rendered to texture in advance.
-
+import sys
 import ctypes
 import time
 import math
 # Pick up our constants extracted from the header files with prepare_constants.py
-from egl import *
-from gl2 import *
-from gl2ext import *
+from .egl import *
+from .gl2 import *
+from .gl2ext import *
 
 # Define verbose=True to get debug messages
 verbose = False
@@ -28,9 +28,15 @@ EGL_NO_SURFACE = 0
 DISPMANX_PROTECTION_NONE = 0
 
 # Open the libraries
-bcm = ctypes.CDLL('libbcm_host.so')
-opengles = ctypes.CDLL('libGLESv2.so')
-openegl = ctypes.CDLL('libEGL.so')
+if sys.platform == 'emscripten':
+    openegl  = opengles = bcm = ctypes.CDLL(None)
+    PI = False
+else:
+    PI = True
+    bcm = ctypes.CDLL('libbcm_host.so')
+    opengles = ctypes.CDLL('libGLESv2.so')
+    openegl = ctypes.CDLL('libEGL.so')
+
 
 eglint = ctypes.c_int
 
@@ -44,7 +50,7 @@ eglfloat = ctypes.c_float
 
 def eglfloats(L):
     return (eglfloat*len(L))(*L)
-                
+
 class Alpha_struct(ctypes.Structure):
   """typedef enum {
   /* Bottom 2 bits sets the alpha mode */
@@ -78,7 +84,7 @@ def check(e):
     """Checks that error is zero"""
     if e==0: return
     if verbose:
-        print 'Error code',hex(e&0xffffffff)
+        print('Error code',hex(e&0xffffffff))
     raise ValueError
 
 class ShaderCompilationFailed(Exception):
@@ -104,23 +110,27 @@ class GLError(Exception):
             return "Unknown error code (%s)" % self.code
         else:
             return "No error code given"
-                
+
 
 class EGL(object):
 
-    def __init__(self, pref_width=None, pref_height=None, 
+    def __init__(self, pref_width=None, pref_height=None,
                red_size=8, green_size=8,blue_size=8,
-               alpha_size=8, depth_size=None, 
+               alpha_size=8, depth_size=None,
                layer=0, alpha_flags=0, alpha_opacity=0, other_attribs = []):
         """Opens up the OpenGL library and prepares a window for display"""
-        b = bcm.bcm_host_init()
-        assert b==0
+        if PI:
+            b = bcm.bcm_host_init()
+            assert b==0
+        else:
+            self.context = embed.webgl()
+
         self.display = openegl.eglGetDisplay(EGL_DEFAULT_DISPLAY)
         assert self.display
         r = openegl.eglInitialize(self.display,0,0)
         assert r
-        
-        
+
+
         attribute_list = [EGL_RED_SIZE, red_size,
                           EGL_GREEN_SIZE, green_size,
                           EGL_BLUE_SIZE, blue_size]
@@ -128,12 +138,12 @@ class EGL(object):
             attribute_list.extend([EGL_ALPHA_SIZE, alpha_size])
 
         attribute_list.extend([EGL_SURFACE_TYPE, EGL_WINDOW_BIT])
-        
+
         if depth_size:
             attribute_list.extend([EGL_DEPTH_SIZE, depth_size])
         if other_attribs and len(other_attribs) % 2 == 0:
             attribute_list.extend(other_attribs)
-        
+
         attribute_list.append(EGL_NONE)
         attribute_list = eglints( attribute_list )
 
@@ -145,17 +155,30 @@ class EGL(object):
                                      ctypes.byref(numconfig));
         assert r
         r = openegl.eglBindAPI(EGL_OPENGL_ES_API)
+        print("EGL_OPENGL_ES_API",EGL_OPENGL_ES_API)
         assert r
         if verbose:
-            print 'numconfig=',numconfig
+            print('numconfig=',numconfig)
         context_attribs = eglints( (EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE) )
-        self.context = openegl.eglCreateContext(self.display, config,
+
+        if PI:
+            self.context = openegl.eglCreateContext(self.display, config,
                                         EGL_NO_CONTEXT,
                                         ctypes.byref(context_attribs))
+
+
+        print(self.context.__class__, self.context)
         assert self.context != EGL_NO_CONTEXT
-        width = eglint()
-        height = eglint()
-        s = bcm.graphics_get_display_size(0,ctypes.byref(width),ctypes.byref(height))
+
+        if PI:
+            width = eglint()
+            height = eglint()
+            s = bcm.graphics_get_display_size(0,ctypes.byref(width),ctypes.byref(height))
+        else:
+            width = eglint(320)
+            height = eglint(200)
+
+
         if pref_width and pref_height:
             self.width = eglint(pref_width)
             self.height = eglint(pref_height)
@@ -164,28 +187,34 @@ class EGL(object):
         else:
             self.width = width
             self.height = height
-        assert s>=0
-        dispman_display = bcm.vc_dispmanx_display_open(0)
-        dispman_update = bcm.vc_dispmanx_update_start( 0 )
+        if PI:
+            assert s>=0
+            dispman_display = bcm.vc_dispmanx_display_open(0)
+            dispman_update = bcm.vc_dispmanx_update_start( 0 )
+            assert dispman_update
+            assert dispman_display
+
         dst_rect = eglints( (0,0,width.value,height.value) )
         src_rect = eglints( (0,0,width.value<<16, height.value<<16) )
-        assert dispman_update
-        assert dispman_display
         alpha_s = Alpha_struct(alpha_flags, alpha_opacity, 0)
-
-        dispman_element = bcm.vc_dispmanx_element_add ( dispman_update, dispman_display,
+        if PI:
+            dispman_element = bcm.vc_dispmanx_element_add ( dispman_update, dispman_display,
                                   layer, ctypes.byref(dst_rect), 0,
                                   ctypes.byref(src_rect),
                                   DISPMANX_PROTECTION_NONE,
                                   ctypes.byref(alpha_s) , 0, 0)
-        bcm.vc_dispmanx_update_submit_sync( dispman_update )
-        nativewindow = eglints((dispman_element,width,height));
-        nw_p = ctypes.pointer(nativewindow)
-        self.nw_p = nw_p
-        self.surface = openegl.eglCreateWindowSurface( self.display, config, nw_p, 0)
+            bcm.vc_dispmanx_update_submit_sync( dispman_update )
+            nativewindow = eglints((dispman_element,width,height));
+            nw_p = ctypes.pointer(nativewindow)
+            self.nw_p = nw_p
+            self.surface = openegl.eglCreateWindowSurface( self.display, config, nw_p, 0)
+        else:
+            self.surface = openegl.eglCreateWindowSurface( self.display, config, 0, 0)
+
         assert self.surface != EGL_NO_SURFACE
-        r = openegl.eglMakeCurrent(self.display, self.surface, self.surface, self.context)
-        assert r
+        if PI:
+            r = openegl.eglMakeCurrent(self.display, self.surface, self.surface, self.context)
+            assert r
 
     def _check_Linked_status(self, programObject):
         # Check the link status
@@ -193,21 +222,21 @@ class EGL(object):
         opengles.glGetProgramiv ( programObject, GL_LINK_STATUS, ctypes.byref(linked))
         try:
             self._check_glerror()
-        except GLError, e:
-            print e
+        except GLError as e:
+            print(e)
             return False
 
         if (linked.value == 0):
-            print "Linking failed!"
+            print("Linking failed!")
             loglength = eglint()
             charswritten = eglint()
             opengles.glGetProgramiv(programObject, GL_INFO_LOG_LENGTH, ctypes.byref(loglength))
             logmsg = ctypes.c_char_p(" "*loglength.value)
             opengles.glGetProgramInfoLog(programObject, loglength, ctypes.byref(charswritten), logmsg)
-            print logmsg.value
+            print(logmsg.value)
             return False
         return True
-    
+
     def _check_glerror(self):
         e=opengles.glGetError()
         if e:
@@ -220,42 +249,42 @@ class EGL(object):
         log=(ctypes.c_char*N)()
         loglen=ctypes.c_int()
         opengles.glGetShaderInfoLog(shader,N,ctypes.byref(loglen),ctypes.byref(log))
-        print log.value
-        
+        print(log.value)
+
     def _show_program_log(self, program):
         """Prints the compile log for a program"""
         N=1024
         log=(ctypes.c_char*N)()
         loglen=ctypes.c_int()
         opengles.glGetProgramInfoLog(program,N,ctypes.byref(loglen),ctypes.byref(log))
-        print log.value
+        print(log.value)
 
     def load_shader ( self, shader_src, shader_type = GL_VERTEX_SHADER, quiet = True ):
         # Convert the src to the correct ctype, if not already done
         c_shader_src = shader_src
-        if type(shader_src) == basestring or type(shader_src) == str:
+        if type(shader_src) == str or type(shader_src) == str:
             c_shader_src = ctypes.c_char_p(shader_src)
 
         # Create a shader of the given type
         if not quiet:
-            print "Creating shader object"
+            print("Creating shader object")
         shader = opengles.glCreateShader(shader_type)
         opengles.glShaderSource(shader, 1, ctypes.byref(c_shader_src), 0)
         opengles.glCompileShader(shader)
-  
+
         compiled = eglint()
 
         # Check compiled status
         opengles.glGetShaderiv ( shader, GL_COMPILE_STATUS, ctypes.byref(compiled) )
 
         if (compiled.value == 0):
-            print "Failed to compile shader '%s'" % shader_src 
+            print("Failed to compile shader '%s'" % shader_src)
             loglength = eglint()
             charswritten = eglint()
             opengles.glGetShaderiv(shader, GL_INFO_LOG_LENGTH, ctypes.byref(loglength))
-            logmsg = ctypes.c_char_p(" "*loglength.value)
+            logmsg = ctypes.c_char_p(b" "*loglength.value)
             opengles.glGetShaderInfoLog(shader, loglength, ctypes.byref(charswritten), logmsg)
-            print logmsg.value
+            print(logmsg.value)
             raise ShaderCompilationFailed(logmsg.value)
         elif not quiet:
             shdtyp = "{unknown}"
@@ -263,7 +292,7 @@ class EGL(object):
                 shdtyp = "GL_VERTEX_SHADER"
             elif shader_type == GL_FRAGMENT_SHADER:
                 shdtyp = "GL_FRAGMENT_SHADER"
-            print "Compiled %s shader" % (shdtyp)
+            print("Compiled %s shader" % (shdtyp))
         if not quiet:
             self._show_shader_log()
         return shader
@@ -293,7 +322,7 @@ class EGL(object):
 
         # Check the link status
         if not (self._check_Linked_status(programObject)):
-            print "Couldn't link the shaders to the program object. Check the bindings and shader sourcefiles."
+            print("Couldn't link the shaders to the program object. Check the bindings and shader sourcefiles.")
             raise Exception
         if not quiet:
             self._show_program_log(programObject)

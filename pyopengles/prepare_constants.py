@@ -11,7 +11,7 @@ def extract(c_header_name,py_name):
                 if len(A)<3: continue
                 if A[0]!='#define': continue
                 if A[2][0:2]!= '0x': continue
-                print >>py,A[1],'=',A[2]
+                print(A[1],'=',A[2], file=py)
             
 
 extract('EGL\egl.h','egl.py')

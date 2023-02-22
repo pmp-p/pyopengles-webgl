@@ -29,12 +29,12 @@ def PerspProjMat(fov, aspect, znear, zfar):
 def reporterror():
   e=opengles.glGetError()
   if e:
-    print hex(e)
+    print(hex(e))
     raise ValueError
 
 def LoadShader ( shader_src, shader_type = GL_VERTEX_SHADER ):
   # Convert the src to the correct ctype, if not already done
-  if type(shader_src) == basestring:
+  if type(shader_src) == str:
     shader_src = ctypes.c_char_p(shader_src)
 
   # Create a shader of the given type
@@ -48,20 +48,20 @@ def LoadShader ( shader_src, shader_type = GL_VERTEX_SHADER ):
   opengles.glGetShaderiv ( shader, GL_COMPILE_STATUS, ctypes.byref(compiled) )
 
   if (compiled.value == 0):
-    print "Failed to compile shader '%s'" % shader_src 
+    print("Failed to compile shader '%s'" % shader_src) 
     loglength = eglint()
     charswritten = eglint()
     opengles.glGetShaderiv(shader, GL_INFO_LOG_LENGTH, ctypes.byref(loglength))
     logmsg = ctypes.c_char_p(" "*loglength.value)
     opengles.glGetShaderInfoLog(shader, loglength, ctypes.byref(charswritten), logmsg)
-    print logmsg.value
+    print(logmsg.value)
   else:
     shdtyp = "{unknown}"
     if shader_type == GL_VERTEX_SHADER:
       shdtyp = "GL_VERTEX_SHADER"
     elif shader_type == GL_FRAGMENT_SHADER:
       shdtyp = "GL_FRAGMENT_SHADER"
-    print "Compiled %s shader: %s" % (shdtyp, shader_src)
+    print("Compiled %s shader: %s" % (shdtyp, shader_src))
   
   return shader
 
@@ -72,13 +72,13 @@ def check_Linked_status(programObject):
   reporterror()
 
   if (linked.value == 0):
-    print "Linking failed!"
+    print("Linking failed!")
     loglength = eglint()
     charswritten = eglint()
     opengles.glGetProgramiv(programObject, GL_INFO_LOG_LENGTH, ctypes.byref(loglength))
     logmsg = ctypes.c_char_p(" "*loglength.value)
     opengles.glGetProgramInfoLog(programObject, loglength, ctypes.byref(charswritten), logmsg)
-    print logmsg.value
+    print(logmsg.value)
     return False
   return True
 
@@ -129,8 +129,8 @@ def convert_obj_to_vbo(object, order=("v","uv","n")):
     for o in order:
       pck.append([mapping[o][x] for x in face[o]])
     m,n = [],[]
-    map(lambda x: m.extend(x), zip(*pck))
-    map(lambda x: n.extend(x), m)
+    list(map(lambda x: m.extend(x), list(zip(*pck))))
+    list(map(lambda x: n.extend(x), m))
     vbo_data.extend(n)
     
   intVertices = eglfloats( vbo_data )

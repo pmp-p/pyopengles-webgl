@@ -31,7 +31,7 @@ def import_obj(path, combine=True):
             pass
         elif words[0] == 'o':
             name = "".join(words[1:]).strip()
-            print "Found new object - %s. Parsing vertices, uvs and normals." % name
+            print("Found new object - %s. Parsing vertices, uvs and normals." % name)
             for object in _parse_object(name, file):
                 objects.append(object)
             line = None
@@ -40,9 +40,9 @@ def import_obj(path, combine=True):
         except StopIteration:
             line = None
     if objects:
-        print "Parsed %s objects in total: %s" % (len(objects), [o.name for o in objects])
+        print("Parsed %s objects in total: %s" % (len(objects), [o.name for o in objects]))
     else:
-        print "Failed to find any objects to load"
+        print("Failed to find any objects to load")
     return objects
 
 def _parse_object(name, file):
@@ -76,7 +76,7 @@ def _parse_object(name, file):
             o.uvs.append(tuple(map(float, words[1:])))
             total_uvs += 1
         elif words[0] == 'f':
-            print "Beginning to parse faces"
+            print("Beginning to parse faces")
             if words[1].count("/") == 0:
                 # faces - verts only
                 line = _face_vertex_only(line, file, o, idx_offsets)
@@ -90,13 +90,13 @@ def _parse_object(name, file):
             else:
                 words = ['null']
             # new object
-            print "Loaded %s vertices, with %s tex coords and %s normals -- %s faces" % (len(o.verts), len(o.uvs), len(o.normals), len(o.faces))
+            print("Loaded %s vertices, with %s tex coords and %s normals -- %s faces" % (len(o.verts), len(o.uvs), len(o.normals), len(o.faces)))
             yield o
             # increase the idx offsets
             idx_offsets = [total_v, total_uvs, total_normals]
         if words[0] == 'o':
             name = "".join(words[1:]).strip()
-            print "Found new object - %s. Parsing vertices, uvs and normals." % name
+            print("Found new object - %s. Parsing vertices, uvs and normals." % name)
             o = Wavefront_Obj(name)
         try:
             line = file.next().strip()
@@ -178,7 +178,7 @@ if __name__ == "__main__":
     import sys
     if len(sys.argv) == 2:
         f = import_obj(sys.argv[1])
-        print f[0]
-        print f[1]
-        print f[2]
+        print(f[0])
+        print(f[1])
+        print(f[2])
 
