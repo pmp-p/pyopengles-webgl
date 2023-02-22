@@ -231,7 +231,7 @@ class EGL(object):
             loglength = eglint()
             charswritten = eglint()
             opengles.glGetProgramiv(programObject, GL_INFO_LOG_LENGTH, ctypes.byref(loglength))
-            logmsg = ctypes.c_char_p(" "*loglength.value)
+            logmsg = ctypes.c_char_p(b" "*loglength.value)
             opengles.glGetProgramInfoLog(programObject, loglength, ctypes.byref(charswritten), logmsg)
             print(logmsg.value)
             return False

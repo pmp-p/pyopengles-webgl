@@ -18,7 +18,7 @@ eglfloat = gl.eglfloat
 eglfloats = gl.eglfloats
 
 ctx = gl.EGL()
-if 1:
+if 0:
     vertex_shader = ctypes.c_char_p(b"""
         attribute highp vec4 vertex_position;
         void main()
@@ -35,52 +35,54 @@ if 1:
         }
     """)
 
-
-    binding = ((0, 'vPosition'),)
+    binding = ((0, 'vertex_position'),)
 
 
 else:
     vertex_shader = ctypes.c_char_p(b"""#version 300 es
-in vec2 vert;
-in vec2 in_text;
-out vec2 v_text;
+in vec4 vertex_position;
+//in vec2 in_text;
+//out vec2 v_text;
 void main() {
-   gl_Position = vec4(vert, 0.0, 1.0);
-   v_text = in_text;
+   gl_Position = vertex_position;
+   //v_text = in_text;
 }    """)
 
-    fragment_shader = ctypes.c_char_p(b"""
+    fragment_shader = ctypes.c_char_p(b"""#version 300 es
 precision mediump float;
 uniform sampler2D Texture;
-in vec2 v_text;
-
-out vec3 f_color;
+//in vec2 v_text;
+out vec4 f_color;
 void main() {
-  f_color = texture(Texture, v_text).rgb;
+//    f_color = texture(Texture, v_text).rgb;
+    f_color = vec4 ( 1.0, 0.0, 0.0, 1.0 );
+//    gl_FragColor = vec4 ( 1.0, 0.0, 0.0, 1.0 );
 }
     """)
 
+    binding = ((0, 'vertex_position'),)
+    if 0:
 
 
-    texture_coordinates = [
-        0, 1,  1, 1,
-        0, 0,  1, 0,
-    ]
+        texture_coordinates = [
+            0, 1,  1, 1,
+            0, 0,  1, 0,
+        ]
 
-    world_coordinates = [
-        -1, -1,  1, -1,
-        -1,  1,  1,  1,
-    ]
+        world_coordinates = [
+            -1, -1,  1, -1,
+            -1,  1,  1,  1,
+        ]
 
-    render_indices = [
-        0, 1, 2,
-        1, 2, 3,
-    ]
+        render_indices = [
+            0, 1, 2,
+            1, 2, 3,
+        ]
 
 
-    vbo = ctx.buffer(struct.pack('8f', *world_coordinates))
-    uvmap = ctx.buffer(struct.pack('8f', *texture_coordinates))
-    ibo= ctx.buffer(struct.pack('6I', *render_indices))
+        vbo = ctx.buffer(struct.pack('8f', *world_coordinates))
+        uvmap = ctx.buffer(struct.pack('8f', *texture_coordinates))
+        ibo= ctx.buffer(struct.pack('6I', *render_indices))
 
 
 
